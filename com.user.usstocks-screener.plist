@@ -9,15 +9,8 @@
         <string>/bin/bash</string>
         <string>/Users/poorva/Downloads/usstocks/run.sh</string>
     </array>
-    <key>StartCalendarInterval</key>
-    <array>
-        <dict>
-            <key>Hour</key>
-            <integer>16</integer>
-            <key>Minute</key>
-            <integer>30</integer>
-        </dict>
-    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
     <key>StandardOutPath</key>
     <string>/Users/poorva/Downloads/usstocks/logs/screener.log</string>
     <key>StandardErrorPath</key>
