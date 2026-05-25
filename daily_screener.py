@@ -100,8 +100,8 @@ def get_all_us_tickers():
         print(f"Fetch failed ({e}). Using fallback list.")
         return ["AAPL", "MSFT", "NVDA", "AMD", "AMZN", "META", "GOOGL", "NFLX", "TSLA", "AVGO", "QCOM", "COST"]
 
-def check_criteria(df_daily, df_weekly, df_monthly):
-    if len(df_daily) < 200 or len(df_weekly) < 2 or len(df_monthly) < 2:
+def check_criteria(df_daily):
+    if len(df_daily) < 200:
         return False
 
     today = df_daily.iloc[-1]
@@ -113,39 +113,37 @@ def check_criteria(df_daily, df_weekly, df_monthly):
     if current_range <= yesterday_range:
         return False
 
-    # 8. Daily close > daily open
+    # 2. Daily close > daily open
     if not (today["Close"] > today["Open"]):
         return False
 
-    # 9. Daily close > 1 day ago close
+    # 3. Daily close > 1 day ago close
     if not (today["Close"] > yesterday["Close"]):
         return False
 
-    # 10. Weekly close > weekly open
-    if not (df_weekly.iloc[-1]["close"] > df_weekly.iloc[-1]["open"]):
-        return False
-
-    # 11. Monthly close > monthly open
-    if not (df_monthly.iloc[-1]["close"] > df_monthly.iloc[-1]["open"]):
-        return False
-
-    # 12. 1 day ago volume > 500000
+    # 4. Yesterday volume > 500000
     if not (yesterday["Volume"] > 500000):
         return False
 
-    # 13. SMA(20) > SMA(50)
+    # 5. SMA(20) > SMA(50) — short-term uptrend
     sma20 = df_daily["Close"].rolling(20).mean().iloc[-1]
     sma50 = df_daily["Close"].rolling(50).mean().iloc[-1]
     if not (sma20 > sma50):
         return False
 
-    # 14. Price > SMA50 (uptrend filter)
-    if not (today["Close"] > sma50):
+    # 6. SMA(50) > SMA(200) — long-term uptrend
+    sma200 = df_daily["Close"].rolling(200).mean().iloc[-1]
+    if not (sma50 > sma200):
         return False
 
-    # 15. RSI(14) > 30
+    # 7. RSI(14) > 30
     rsi14 = calculate_rsi(df_daily["Close"]).iloc[-1]
     if not (rsi14 > 30):
+        return False
+
+    # 8. Volume spike > 1.5x 20-day average
+    vol_avg20 = df_daily["Volume"].rolling(20).mean().iloc[-2]
+    if vol_avg20 > 0 and yesterday["Volume"] / vol_avg20 <= 1.5:
         return False
 
     return True
@@ -161,10 +159,7 @@ def evaluate_single_ticker(ticker):
 
         df_d = df_d[["Open", "High", "Low", "Close", "Volume"]].copy()
 
-        df_w = df_d["Close"].resample("W").ohlc()
-        df_m = df_d["Close"].resample("ME").ohlc()
-
-        if check_criteria(df_d, df_w, df_m):
+        if check_criteria(df_d):
             return ticker
     except Exception:
         pass
