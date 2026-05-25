@@ -236,22 +236,40 @@ def send_results_to_telegram(matched_stocks, elapsed):
         send_telegram_message(msg)
 
 def main():
-    start_time = datetime.datetime.now()
-    print(f"Screener started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Telegram configured: {bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)}")
+    import argparse
+    parser = argparse.ArgumentParser(description="US Stocks Screener")
+    parser.add_argument("--every", type=float, default=0,
+                        help="Run every N hours in a loop (0 = run once)")
+    args = parser.parse_args()
 
-    matched_stocks = scan_full_us_market()
-    elapsed = datetime.datetime.now() - start_time
+    run_interval = args.every * 3600
 
-    print(f"\n{'='*50}")
-    print(f"Total Matches: {len(matched_stocks)}")
-    print(f"Runtime: {elapsed}")
-    if matched_stocks:
-        print(f"Stocks: {matched_stocks}")
+    while True:
+        start_time = datetime.datetime.now()
+        print(f"\n{'='*50}")
+        print(f"Screener started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Telegram configured: {bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)}")
 
-    save_results_to_file(matched_stocks, str(elapsed).split('.')[0])
-    send_results_to_telegram(matched_stocks, str(elapsed).split('.')[0])
-    print("Done. Results saved and sent to Telegram.")
+        matched_stocks = scan_full_us_market()
+        elapsed = datetime.datetime.now() - start_time
+
+        print(f"\n{'='*50}")
+        print(f"Total Matches: {len(matched_stocks)}")
+        print(f"Runtime: {elapsed}")
+        if matched_stocks:
+            print(f"Stocks: {matched_stocks}")
+
+        save_results_to_file(matched_stocks, str(elapsed).split('.')[0])
+        send_results_to_telegram(matched_stocks, str(elapsed).split('.')[0])
+        print("Done. Results saved and sent to Telegram.")
+
+        if run_interval <= 0:
+            break
+
+        sleep_secs = run_interval - (datetime.datetime.now() - start_time).total_seconds()
+        if sleep_secs > 0:
+            print(f"Next scan in {args.every}h ({sleep_secs/60:.0f}m)...")
+            time.sleep(sleep_secs)
 
 if __name__ == "__main__":
     main()
